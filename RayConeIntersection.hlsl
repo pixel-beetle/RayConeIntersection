@@ -17,22 +17,15 @@ RayConeIntersection DoRayConeIntersection(float3 rayOrigin, float3 rayDir, float
 
     // 判别式
     float D = B * B - 4.0 * A * C;
+    if(D < 0.0)
+        return result;
     
-    // 初始化 t 值
-    float t0 = -1.0, t1 = -1.0;
-    bool valid0 = false, valid1 = false;
-
     // 计算侧面交点
-    valid0 = D >= 0.0;
-    float sqrtD = valid0 ? sqrt(D) : 0.0;
-    t0 = valid0 ? (-B - sqrtD) / (2.0 * A) : -1.0;
-    t1 = valid0 ? (-B + sqrtD) / (2.0 * A) : -1.0;
-
+    float sqrtD = sqrt(D);
+    float2 t0t1 = float2(-B - sqrtD, -B + sqrtD) * rcp(2.0 * A);
     // 检查 z 范围是否在 [0, h] 内
-    float z0 = rayOrigin.z + t0 * rayDir.z;
-    float z1 = rayOrigin.z + t1 * rayDir.z;
-    valid0 = (t0 >= 0.0) && (z0 >= 0.0 && z0 <= coneHeight);
-    valid1 = (t1 >= 0.0) && (z1 >= 0.0 && z1 <= coneHeight);
+    float2 z0z1 = rayOrigin.zz + t0t1.xy * rayDir.zz;
+    bool2 valid = (t0t1.xy >= 0.0) && (z0z1.xy >= 0.0 && z0z1.xy <= coneHeight);
 
     // 底面相交计算
     float tBottom = (abs(rayDir.z) > EPSILON) ? ((coneHeight - rayOrigin.z) / rayDir.z) : -1.0;
@@ -43,10 +36,10 @@ RayConeIntersection DoRayConeIntersection(float3 rayOrigin, float3 rayDir, float
     // 收集所有有效 t 值
     float tValues[3] = {-1.0, -1.0, -1.0};
     int count = 0;
-    tValues[count] = valid0 ? t0 : -1.0;
-    count += valid0 ? 1 : 0;
-    tValues[count] = valid1 ? t1 : -1.0;
-    count += valid1 ? 1 : 0;
+    tValues[count] = valid.x ? t0t1.x : -1.0;
+    count += valid.x ? 1 : 0;
+    tValues[count] = valid.y ? t0t1.y : -1.0;
+    count += valid.y ? 1 : 0;
     tValues[count] = hitBottom ? tBottom : -1.0;
     count += hitBottom ? 1 : 0;
 
